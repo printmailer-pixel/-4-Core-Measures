@@ -9,7 +9,7 @@ export const CAPE_QUESTIONS = [
   "Have you been unable to stop a crime, recover a victim, or save someone who has died in close proximity to you in the context of a rescue attempt?",
   "Have you been personally impacted by grief due to the unexpected loss of a fellow first responder due to a suicide, homicide, a training or on duty accident, or a medical death that is directly related to the job (i.e., job-related cancer)?",
   "Have you lost a very important relationship due to the strain of the job or changes in you as a result of your job, including loss of a marriage or custody of a child?"
-];
+]; 
 
 export const PCL5_QUESTIONS = [
   "Repeated, disturbing, and unwanted memories of the stressful experience?",
