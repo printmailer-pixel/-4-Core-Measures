@@ -1,0 +1,587 @@
+import React, { useState, useEffect } from 'react';
+import { AppState, MeasureData } from './types';
+
+declare global {
+  interface Window {
+    TEST?: boolean;
+  }
+}
+
+import {
+  PCL5_QUESTIONS,
+  GAD7_QUESTIONS,
+  PHQ9_QUESTIONS,
+  CSSRS_QUESTIONS,
+  SPRINGER_QUESTIONS
+} from './data';
+import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
+
+const INITIAL_STATE: AppState = {
+  demographics: {
+    firstName: '', lastName: '', email: '', age: '', gender: '', role: '', status: '',
+    years: '', leadership: '', military: '', combat: '', orgType: '', setting: ''
+  },
+  springer: {},
+  pcl5: {},
+  gad7: {},
+  phq9: {},
+  cssrs: {}
+};
+
+export default function App() {
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState<AppState>(INITIAL_STATE);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const updateData = (section: keyof AppState, values: Partial<any>) => {
+    setData(prev => ({
+      ...prev,
+      [section]: { ...prev[section], ...values }
+    }));
+  };
+
+  const nextStep = () => {
+    setStep(s => s + 1);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+  };
+
+  const prevStep = () => {
+    setStep(s => Math.max(0, s - 1));
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+  };
+
+  const preloadMockData = () => {
+    setData({
+      demographics: {
+        firstName: 'John', lastName: 'Doe', email: 'test@example.com', age: '45', gender: 'Male', role: 'Fire service', status: 'Active',
+        years: '11–20', leadership: 'Supervisor', military: 'Veteran', combat: 'Yes', orgType: 'Municipal', setting: 'Urban'
+      },
+      springer: { '0': 1, '1': 1, '2': 1, '3': 1, '4': 1, '5': 1, '6': 1, '7': 1, '8': 1, '9': 1, '10': 1, '11': 1 },
+      pcl5: { '0': 2, '1': 2, '2': 2, '3': 2, '4': 2, '5': 2, '6': 2, '7': 2, '8': 2, '9': 2, '10': 2, '11': 2, '12': 2, '13': 2, '14': 2, '15': 2, '16': 2, '17': 2, '18': 2, '19': 2 },
+      gad7: { '0': 1, '1': 1, '2': 1, '3': 1, '4': 1, '5': 1, '6': 1 },
+      phq9: { '0': 1, '1': 1, '2': 1, '3': 1, '4': 1, '5': 1, '6': 1, '7': 1, '8': 1 },
+      cssrs: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }
+    });
+    setStep(1);
+  };
+
+  // If we are at CSSRS but PHQ9 item 9 is 0, skip to final
+  useEffect(() => {
+    if (step === 6) {
+      const phq9Item9 = data.phq9['8']; // 0-indexed, so 9th item is index 8
+      if (phq9Item9 === undefined || Number(phq9Item9) === 0) {
+        setStep(7); // skip to final
+      }
+    }
+  }, [step, data.phq9]);
+
+  const handleSubmit = async () => {
+    const sanitizeKey = (str: string) => {
+      return str.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    };
+
+    const transformAnswers = (answers: any, questions: string[]) => {
+      const transformed: Record<string, any> = {};
+      for (let i = 0; i < questions.length; i++) {
+        if (answers[i] !== undefined) {
+          transformed[sanitizeKey(questions[i])] = answers[i];
+        }
+      }
+      return transformed;
+    };
+
+    const pcl5Score = Object.values(data.pcl5).reduce((sum: number, val: any) => sum + Number(val), 0) as number;
+    const springerScore = Object.values(data.springer).reduce((sum: number, val: any) => sum + Number(val), 0) as number;
+    const gad7Score = Object.values(data.gad7).reduce((sum: number, val: any) => sum + Number(val), 0) as number;
+    const phq9Score = Object.values(data.phq9).reduce((sum: number, val: any) => sum + Number(val), 0) as number;
+    const cssrsScore = Object.values(data.cssrs).reduce((sum: number, val: any) => sum + Number(val), 0) as number;
+    
+    let pcl5Interp = "Minimal PTSD symptoms";
+    if (pcl5Score >= 20 && pcl5Score <= 31) pcl5Interp = "Mild symptoms";
+    if (pcl5Score >= 32 && pcl5Score <= 49) pcl5Interp = "Moderate symptoms";
+    if (pcl5Score >= 50) pcl5Interp = "Severe symptoms";
+
+    let springerInterp = "Well regulated";
+    if (springerScore >= 25 && springerScore <= 36) springerInterp = "Mildly dysregulated";
+    if (springerScore >= 37 && springerScore <= 48) springerInterp = "Moderately dysregulated";
+    if (springerScore >= 49) springerInterp = "Severely dysregulated";
+    
+    let gad7Interp = "Minimal anxiety";
+    if (gad7Score >= 5 && gad7Score <= 9) gad7Interp = "Mild anxiety";
+    if (gad7Score >= 10 && gad7Score <= 14) gad7Interp = "Moderate anxiety";
+    if (gad7Score >= 15) gad7Interp = "Severe anxiety";
+    
+    let phq9Interp = "Minimal depression";
+    if (phq9Score >= 5 && phq9Score <= 9) phq9Interp = "Mild depression";
+    if (phq9Score >= 10 && phq9Score <= 14) phq9Interp = "Moderate depression";
+    if (phq9Score >= 15 && phq9Score <= 19) phq9Interp = "Moderately severe depression";
+    if (phq9Score >= 20) phq9Interp = "Severe depression";
+    
+    let cssrsInterp = cssrsScore > 0 ? "Positive (Action recommended)" : "Negative";
+
+    const finalPayload = {
+      demographics: data.demographics,
+      springer: transformAnswers(data.springer, SPRINGER_QUESTIONS),
+      pcl5: transformAnswers(data.pcl5, PCL5_QUESTIONS),
+      gad7: transformAnswers(data.gad7, GAD7_QUESTIONS),
+      phq9: transformAnswers(data.phq9, PHQ9_QUESTIONS),
+      cssrs: transformAnswers(data.cssrs, CSSRS_QUESTIONS),
+      scores: {
+        springer: springerScore,
+        springerInterpretation: springerInterp,
+        pcl5: pcl5Score,
+        pcl5Interpretation: pcl5Interp,
+        gad7: gad7Score,
+        gad7Interpretation: gad7Interp,
+        phq9: phq9Score,
+        phq9Interpretation: phq9Interp,
+        cssrs: cssrsScore,
+        cssrsInterpretation: cssrsInterp
+      }
+    };
+
+    console.log(JSON.stringify(finalPayload, null, 2));
+
+    const webhookUrl = (window as any).WEBHOOK_URL;
+    if (webhookUrl) {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(finalPayload)
+        });
+        
+        // When using no-cors, the response is opaque (status 0)
+        if (response.ok || response.type === 'opaque' || response.status === 0) {
+          // We can't read the JSON response in no-cors mode, so we assume success
+          setStep(7);
+          setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+        } else {
+          console.error('Server error:', response.status);
+          alert('Server error: ' + response.status);
+        }
+      } catch (err) {
+        console.error('Network error:', err);
+        alert('Network error. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      console.log('No webhook URL configured. Simulating success.');
+      setStep(7);
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-slate-200">
+      <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+        {step === 0 && <Intro nextStep={nextStep} preloadMock={preloadMockData} />}
+        {step === 1 && <Demographics data={data.demographics} updateData={(v: any) => updateData('demographics', v)} nextStep={nextStep} prevStep={prevStep} />}
+        {step === 2 && (
+          <Measure
+            title="The Springer Measure of Elasticity"
+            description="This first measure looks at your current flexibility and range of motion in your nervous system, identity and relationships. Thousands of first responders have completed this measure so if we ever talk through your score, I can share how your scores compare to others."
+            questions={SPRINGER_QUESTIONS}
+            options={(i: number) => {
+              if (i % 2 === 0) { // Items 1, 3, 5, 7, 9, 11 (index 0, 2, 4...)
+                return [
+                  { label: 'Almost always', value: 1 },
+                  { label: 'Often', value: 2 },
+                  { label: 'Sometimes', value: 3 },
+                  { label: 'Occasionally', value: 4 },
+                  { label: 'Almost never', value: 5 }
+                ];
+              } else { // Items 2, 4, 6, 8, 10, 12 (index 1, 3, 5...)
+                return [
+                  { label: 'Almost always', value: 5 },
+                  { label: 'Often', value: 4 },
+                  { label: 'Sometimes', value: 3 },
+                  { label: 'Occasionally', value: 2 },
+                  { label: 'Almost never', value: 1 }
+                ];
+              }
+            }}
+            data={data.springer}
+            updateData={(v) => updateData('springer', v)}
+            nextStep={nextStep}
+            prevStep={prevStep}
+          />
+        )}
+        {step === 3 && (
+          <Measure
+            title="PCL-5"
+            description="This next measure might be familiar since it is widely used to gauge a person’s current level of self-reported post-traumatic stress symptoms. In the past month, how much were you bothered by:"
+            questions={PCL5_QUESTIONS}
+            options={[
+              { label: 'Not at all', value: 0 },
+              { label: 'A little bit', value: 1 },
+              { label: 'Moderately', value: 2 },
+              { label: 'Quite a bit', value: 3 },
+              { label: 'Extremely', value: 4 }
+            ]}
+            data={data.pcl5}
+            updateData={(v) => updateData('pcl5', v)}
+            nextStep={nextStep}
+            prevStep={prevStep}
+          />
+        )}
+        {step === 4 && (
+          <Measure
+            title="GAD-7"
+            description="You’re almost there – just 2 more short measures. The next ones look at anxiety and depression. Over the last 2 weeks, how often have you been bothered by the following problems?"
+            questions={GAD7_QUESTIONS}
+            options={[
+              { label: 'Not at all', value: 0 },
+              { label: 'Several days', value: 1 },
+              { label: 'More than half the days', value: 2 },
+              { label: 'Nearly every day', value: 3 }
+            ]}
+            data={data.gad7}
+            updateData={(v) => updateData('gad7', v)}
+            nextStep={nextStep}
+            prevStep={prevStep}
+          />
+        )}
+        {step === 5 && (
+          <Measure
+            title="PHQ-9"
+            description="Over the last 2 weeks, how often have you been bothered by any of the following problems?"
+            questions={PHQ9_QUESTIONS}
+            options={[
+              { label: 'Not at all', value: 0 },
+              { label: 'Several days', value: 1 },
+              { label: 'More than half the days', value: 2 },
+              { label: 'Nearly every day', value: 3 }
+            ]}
+            data={data.phq9}
+            updateData={(v) => updateData('phq9', v)}
+            nextStep={step === 5 && data.phq9['8'] && Number(data.phq9['8']) > 0 ? nextStep : handleSubmit}
+            prevStep={prevStep}
+            isSubmit={!(step === 5 && data.phq9['8'] && Number(data.phq9['8']) > 0)}
+            isSubmitting={isSubmitting}
+          />
+        )}
+        {step === 6 && (
+          <Measure
+            title="C-SSRS"
+            description="Please answer the following questions regarding your thoughts and behaviors."
+            questions={CSSRS_QUESTIONS}
+            options={[
+              { label: 'No', value: 0 },
+              { label: 'Yes', value: 1 }
+            ]}
+            data={data.cssrs}
+            updateData={(v) => updateData('cssrs', v)}
+            nextStep={handleSubmit}
+            prevStep={prevStep}
+            isSubmit={true}
+            isSubmitting={isSubmitting}
+          />
+        )}
+        {step === 7 && <FinalScreen email={data.demographics.email} />}
+      </div>
+    </div>
+  );
+}
+
+function Intro({ nextStep, preloadMock }: { nextStep: () => void, preloadMock: () => void }) {
+  return (
+    <div className="space-y-6 bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200">
+      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
+        Assessment & Feedback
+      </h1>
+      <div className="space-y-6 text-slate-700 leading-relaxed text-base sm:text-lg">
+        <p>
+          How many times have you been asked to fill out forms – and been given no feedback at all? 
+        </p>
+        <p>
+          Maybe your results were used to inform a mental health provider about your symptoms, or were captured for research, and NO ONE gave you feedback on your results and what they mean. <strong className="text-slate-900">THIS IS NOT THAT.</strong>
+        </p>
+        <p>
+          This assessment is designed to give both of us private, useful insight into challenges you may be facing right now.
+        </p>
+        <p>
+          If you meet with me or my team, we can talk through your results—you can share them with us or give us your unique call sign so we can look them up. Let’s drop in…
+        </p>
+      </div>
+      <div className="pt-6 flex flex-col sm:flex-row gap-4">
+        <Button onClick={nextStep} className="text-lg py-4 px-8 w-full sm:w-auto">
+          Let's drop in <ChevronRight className="w-5 h-5 ml-2" />
+        </Button>
+        {window.TEST && (
+          <button onClick={preloadMock} className="px-6 py-4 rounded-full text-base font-bold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors w-full sm:w-auto">
+            Preload Mock Data
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Demographics({ data, updateData, nextStep, prevStep }: any) {
+  const isComplete = data.firstName && data.lastName && data.age && data.role && data.status && data.years && data.leadership && data.military && data.orgType && data.setting;
+
+  const handleRadioChange = (field: string, nextId: string) => (v: string) => {
+    updateData({ [field]: v });
+    setTimeout(() => {
+      document.getElementById(nextId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+  };
+
+  return (
+    <div className="space-y-8 bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h2 className="text-3xl font-bold text-slate-800">Getting Started</h2>
+      
+      <div className="space-y-10">
+        <div id="demo-1">
+          <Field label="1) FIRST NAME">
+            <input type="text" className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:ring-4 focus:ring-slate-900/20 focus:border-slate-900 outline-none transition-all" value={data.firstName} onChange={e => updateData({ firstName: e.target.value })} placeholder="First Name" />
+          </Field>
+        </div>
+
+        <div id="demo-2">
+          <Field label="2) LAST NAME">
+            <input type="text" className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:ring-4 focus:ring-slate-900/20 focus:border-slate-900 outline-none transition-all" value={data.lastName} onChange={e => updateData({ lastName: e.target.value })} placeholder="Last Name" />
+          </Field>
+        </div>
+
+        <div id="demo-3">
+          <Field label="3) EMAIL address" hint="(feel free to use a non-work email address to keep your results private)">
+            <input type="email" className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:ring-4 focus:ring-slate-900/20 focus:border-slate-900 outline-none transition-all" value={data.email} onChange={e => updateData({ email: e.target.value })} placeholder="Email address" />
+          </Field>
+        </div>
+
+        <div id="demo-4">
+          <Field label="4) Current age:">
+            <input type="number" className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:ring-4 focus:ring-slate-900/20 focus:border-slate-900 outline-none transition-all" value={data.age} onChange={e => updateData({ age: e.target.value })} placeholder="Age" />
+          </Field>
+        </div>
+
+        <div id="demo-5">
+          <RadioGroup label="5) Gender identity (Optional)" options={['Male', 'Female', 'Other designation']} value={data.gender} onChange={handleRadioChange('gender', 'demo-6')} />
+        </div>
+        <div id="demo-6">
+          <RadioGroup label="6) Primary role" options={['Law enforcement', 'Fire service', 'EMS', 'Emergency communications/dispatch', 'Corrections', 'Military (active duty)', 'Veteran', 'Other']} value={data.role} onChange={handleRadioChange('role', 'demo-7')} />
+        </div>
+        <div id="demo-7">
+          <RadioGroup label="7) Current status" options={['Active', 'Retired', 'Former', 'Reserve/National Guard']} value={data.status} onChange={handleRadioChange('status', 'demo-8')} />
+        </div>
+        <div id="demo-8">
+          <RadioGroup label="8) Years of service" options={['<5', '5–10', '11–20', '21+']} value={data.years} onChange={handleRadioChange('years', 'demo-9')} />
+        </div>
+        <div id="demo-9">
+          <RadioGroup label="9) Leadership level" options={['Frontline/member', 'Supervisor', 'Manager/command staff', 'Executive leadership']} value={data.leadership} onChange={handleRadioChange('leadership', 'demo-10')} />
+        </div>
+        <div id="demo-10">
+          <RadioGroup label="10) Military service" options={['Never served', 'Active duty', 'Reserve/Guard', 'Veteran']} value={data.military} onChange={handleRadioChange('military', 'demo-11')} />
+        </div>
+        <div id="demo-11">
+          <RadioGroup label="11) Combat deployment (Optional)" options={['Yes', 'No', 'Prefer not to answer']} value={data.combat} onChange={handleRadioChange('combat', 'demo-12')} />
+        </div>
+        <div id="demo-12">
+          <RadioGroup label="12) Organization type" options={['Municipal', 'County', 'State', 'Federal', 'Private', 'Volunteer']} value={data.orgType} onChange={handleRadioChange('orgType', 'demo-13')} />
+        </div>
+        <div id="demo-13">
+          <RadioGroup label="13) Geographic setting" options={['Urban', 'Suburban', 'Rural']} value={data.setting} onChange={(v: string) => updateData({ setting: v })} />
+        </div>
+      </div>
+
+      <div className="pt-8 border-t border-slate-200 flex flex-col-reverse sm:flex-row justify-between gap-4">
+        <Button onClick={prevStep} variant="secondary" className="text-lg py-4 px-8 w-full sm:w-auto">
+          <ChevronLeft className="w-5 h-5 mr-2" /> Back
+        </Button>
+        <Button onClick={nextStep} disabled={!isComplete} className="text-lg py-4 px-8 w-full sm:w-auto">
+          Continue <ChevronRight className="w-5 h-5 ml-2" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Measure({ title, description, questions, options, data, updateData, nextStep, prevStep, isSubmit = false, isSubmitting = false }: any) {
+  const isComplete = questions.every((_: any, i: number) => data[i] !== undefined);
+
+  const handleOptionSelect = (index: number, value: any) => {
+    updateData({ [index]: value });
+    setTimeout(() => {
+      const nextQ = document.getElementById(`measure-q-${index + 1}`);
+      if (nextQ) {
+        nextQ.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+  };
+
+  return (
+    <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+        <h2 className="text-3xl sm:text-4xl font-bold text-slate-800">{title}</h2>
+        {description && <p className="text-slate-700 leading-relaxed text-lg sm:text-xl font-medium">{description}</p>}
+      </div>
+
+      <div className="space-y-6">
+        {questions.map((q: string, i: number) => (
+          <div key={i} id={`measure-q-${i}`} className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+            <p className="text-lg sm:text-xl font-bold text-slate-900 mb-6">{i + 1}. {q}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {((typeof options === 'function' ? options(i) : options) as any[]).map((opt: any) => {
+                const isSelected = data[i] === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleOptionSelect(i, opt.value)}
+                    className={`p-4 rounded-xl border-2 text-base sm:text-lg font-bold transition-all duration-200 ${
+                      isSelected 
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-md' 
+                        : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-400 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-8 border-t border-slate-200 flex flex-col-reverse sm:flex-row justify-between gap-4">
+        <Button onClick={prevStep} variant="secondary" className="w-full sm:w-auto text-lg py-4 px-8" disabled={isSubmitting}>
+          <ChevronLeft className="w-5 h-5 mr-2" /> Back
+        </Button>
+        <Button onClick={nextStep} disabled={!isComplete || isSubmitting} className="w-full sm:w-auto text-lg py-4 px-8">
+          {isSubmit ? (isSubmitting ? 'Please wait...' : 'Submit Assessment') : 'Continue'} {!isSubmit || !isSubmitting ? <ChevronRight className="w-5 h-5 ml-2" /> : null}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function FinalScreen({ email }: { email: string }) {
+  return (
+    <div className="space-y-8 bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="text-center space-y-4">
+        <div className="w-16 h-16 bg-slate-100 text-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Check className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-light text-slate-800">All done!</h2>
+        <p className="text-slate-600 text-sm">
+          You will receive an email with your results. Feel free to reach out if you want to talk through these results with me or my team at THIN LINE ADVISORY.
+        </p>
+      </div>
+
+      <div className="space-y-6 pt-6 border-t border-slate-100">
+        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Here are some potentially helpful resources:</h3>
+        
+        <div className="space-y-4">
+          <ResourceSection title="Crisis Support">
+            <ResourceLink title="988 Suicide & Crisis Lifeline" url="https://988lifeline.org" />
+            <ResourceLink title="Veterans Crisis Line" url="https://www.veteranscrisisline.net" />
+          </ResourceSection>
+
+          <ResourceSection title="Free Mental Health Care for Veterans">
+            <ResourceLink title="The Headstrong Project" url="https://theheadstrongproject.org" />
+            <ResourceLink title="Stop Soldier Suicide" url="https://www.stopsoldiersuicide.org" />
+          </ResourceSection>
+
+          <ResourceSection title="First Responder Resources">
+            <ResourceLink 
+              title="Fortitude Recovery (Palo Alto)" 
+              url="https://www.fortituderecovery.com/"
+              description="A specialized recovery program for first responders and veterans addressing trauma, PTSD symptoms, substance use, and related mental health challenges. Offers confidential, trauma-informed residential and outpatient care with clinicians who understand the unique experiences of those who serve."
+            />
+            <ResourceLink title="ResponderStrong" url="https://responderstrong.org" />
+            <ResourceLink title="First Responder Project" url="https://firstresponderproject.org" />
+          </ResourceSection>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helpers
+function Field({ label, hint, children }: any) {
+  return (
+    <div className="space-y-3">
+      <label className="block text-sm sm:text-base font-bold text-slate-700 uppercase tracking-wider mb-2">
+        {label}
+        {hint && <span className="block text-xs sm:text-sm text-slate-500 font-medium mt-2 normal-case tracking-normal">{hint}</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function RadioGroup({ label, options, value, onChange }: any) {
+  return (
+    <div className="space-y-4">
+      <label className="block text-sm sm:text-base font-bold text-slate-700 uppercase tracking-wider mb-2">{label}</label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {options.map((opt: string) => (
+          <label key={opt} className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            value === opt 
+              ? 'border-slate-900 bg-slate-900 text-white shadow-md' 
+              : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-400'
+          }`}>
+            <input type="radio" className="sr-only" checked={value === opt} onChange={() => onChange(opt)} />
+            <span className="text-base font-bold">{opt}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Button({ children, onClick, disabled, className = '', variant = 'primary' }: any) {
+  const baseStyle = "inline-flex items-center justify-center rounded-full text-sm font-bold transition-all";
+  
+  let variantStyle = "";
+  if (variant === 'primary') {
+    variantStyle = disabled 
+      ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-xl';
+  } else if (variant === 'secondary') {
+    variantStyle = disabled
+      ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+      : 'bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-lg';
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseStyle} ${variantStyle} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ResourceSection({ title, children }: any) {
+  return (
+    <div className="space-y-3">
+      <h4 className="font-bold text-sm text-slate-800">{title}</h4>
+      <div className="space-y-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ResourceLink({ title, url, description }: any) {
+  return (
+    <div className="block p-4 rounded-xl border border-slate-200 bg-slate-50 hover:border-slate-300 transition-colors h-full">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold text-sm hover:text-blue-800 hover:underline inline-flex items-center">
+        {title}
+      </a>
+      {description && <p className="text-xs text-slate-500 mt-2 leading-relaxed">{description}</p>}
+      <a href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:text-blue-600 mt-2 block truncate font-mono">
+        {url}
+      </a>
+    </div>
+  );
+}
