@@ -363,31 +363,31 @@ function Demographics({ data, updateData, nextStep, prevStep }: any) {
         </div>
 
         <div id="demo-5">
-          <RadioGroup label="5) Gender identity (Optional)" options={['Male', 'Female', 'Other designation']} value={data.gender} onChange={handleRadioChange('gender', 'demo-6')} />
+          <RadioGroup label="5) Gender identity (Optional)" options={['Male', 'Female', 'Other designation', 'Prefer not to answer']} value={data.gender} onChange={handleRadioChange('gender', 'demo-6')} />
         </div>
         <div id="demo-6">
-          <RadioGroup label="6) Primary role" options={['Law enforcement', 'Fire service', 'EMS', 'Emergency communications/dispatch', 'Corrections', 'Military (active duty)', 'Veteran', 'Other']} value={data.role} onChange={handleRadioChange('role', 'demo-7')} />
+          <RadioGroup label="6) Primary role" options={['Law enforcement', 'Fire service', 'EMS', 'Emergency communications/dispatch', 'Corrections', 'Military (active duty)', 'Veteran', 'Does not apply', 'Other']} value={data.role} onChange={handleRadioChange('role', 'demo-7')} />
         </div>
         <div id="demo-7">
-          <RadioGroup label="7) Current status" options={['Active', 'Retired', 'Former', 'Reserve/National Guard']} value={data.status} onChange={handleRadioChange('status', 'demo-8')} />
+          <RadioGroup label="7) Current status" options={['Active', 'Retired', 'Former', 'Reserve/National Guard', 'Does not apply']} value={data.status} onChange={handleRadioChange('status', 'demo-8')} />
         </div>
         <div id="demo-8">
-          <RadioGroup label="8) Years of service" options={['<5', '5–10', '11–20', '21+']} value={data.years} onChange={handleRadioChange('years', 'demo-9')} />
+          <RadioGroup label="8) Years of service" options={['<5', '5–10', '11–20', '21+', 'Does not apply']} value={data.years} onChange={handleRadioChange('years', 'demo-9')} />
         </div>
         <div id="demo-9">
-          <RadioGroup label="9) Leadership level" options={['Frontline/member', 'Supervisor', 'Manager/command staff', 'Executive leadership']} value={data.leadership} onChange={handleRadioChange('leadership', 'demo-10')} />
+          <RadioGroup label="9) Leadership level" options={['Frontline/member', 'Supervisor', 'Manager/command staff', 'Executive leadership', 'Does not apply']} value={data.leadership} onChange={handleRadioChange('leadership', 'demo-10')} />
         </div>
         <div id="demo-10">
-          <RadioGroup label="10) Military service" options={['Never served', 'Active duty', 'Reserve/Guard', 'Veteran']} value={data.military} onChange={handleRadioChange('military', 'demo-11')} />
+          <RadioGroup label="10) Military service" options={['Never served', 'Active duty', 'Reserve/Guard', 'Veteran', 'Does not apply']} value={data.military} onChange={handleRadioChange('military', 'demo-11')} />
         </div>
         <div id="demo-11">
-          <RadioGroup label="11) Combat deployment (Optional)" options={['Yes', 'No', 'Prefer not to answer']} value={data.combat} onChange={handleRadioChange('combat', 'demo-12')} />
+          <RadioGroup label="11) Combat deployment (Optional)" options={['Yes', 'No', 'Does not apply', 'Prefer not to answer']} value={data.combat} onChange={handleRadioChange('combat', 'demo-12')} />
         </div>
         <div id="demo-12">
-          <RadioGroup label="12) Organization type" options={['Municipal', 'County', 'State', 'Federal', 'Private', 'Volunteer']} value={data.orgType} onChange={handleRadioChange('orgType', 'demo-13')} />
+          <RadioGroup label="12) Organization type" options={['Municipal', 'County', 'State', 'Federal', 'Private', 'Volunteer', 'Does not apply']} value={data.orgType} onChange={handleRadioChange('orgType', 'demo-13')} />
         </div>
         <div id="demo-13">
-          <RadioGroup label="13) Geographic setting" options={['Urban', 'Suburban', 'Rural']} value={data.setting} onChange={(v: string) => updateData({ setting: v })} />
+          <RadioGroup label="13) Geographic setting" options={['Urban', 'Suburban', 'Rural', 'Does not apply']} value={data.setting} onChange={(v: string) => updateData({ setting: v })} />
         </div>
       </div>
 
